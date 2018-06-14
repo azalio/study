@@ -15,20 +15,23 @@ class Client:
 
     @contextmanager
     def _connect(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
+            sock = socket.create_connection((self.ip, self.port))
+#            print("sock is",sock.connect)
             # print(self.ip, self.port)
-            sock.connect((self.ip, self.port))
+#            sock.create_connection((self.ip, self.port))
             yield sock
         except(socket.error, socket.herror, socket.gaierror, socket.timeout) as ex:
             print("some exception: {}".format(ex))
             raise ClientError
         finally:
-            sock.close()
+            pass
+            # sock.close()
 
     def _read_response(self, sock):
         response = sock.recv(1024)
-        if response == 'error\nwrong command\n\n':
+        print(response)
+        if response == b'error\nwrong command\n\n':
             raise ClientError
         else:
             return response.decode('utf-8')
@@ -36,9 +39,10 @@ class Client:
     def put(self, metric_name, metric_value, timestamp=None):
         if timestamp is None:
             timestamp = str(int(time.time()))
-        metric_value = float(metric_value)
+        # metric_value = float(metric_value)
         with self._connect() as sock:
             request = "put {key} {value} {timestamp}\n".format(key=metric_name, value=metric_value, timestamp=timestamp)
+            # print(request)
             request = request.encode('utf-8')
             sock.send(request)
             response = self._read_response(sock)
@@ -50,7 +54,8 @@ class Client:
     def get(self, metric_name):
         data = {}
         with self._connect() as sock:
-            request = f"{metric_name}\n"
+            # request = b"%s"%metric_name
+            request = f"get {metric_name}\n"
             request = request.encode('utf-8')
             sock.send(request)
             response = self._read_response(sock)
@@ -75,6 +80,7 @@ class Client:
 }
                 """
                 metric_list = response[i].split()
+                # print(metric_list)
                 # data[metric_list[0]] = (metric_list[2], metric_list[1])
                 timestamp = int(metric_list[2])
                 value = float(metric_list[1])
@@ -82,6 +88,9 @@ class Client:
                     data[metric_list[0]].append((timestamp, value))
                 except KeyError:
                     data[metric_list[0]] = [(timestamp, value)]
+            # print(data)
+            for i in data:
+                data[i] = sorted(data[i], key=lambda student: student[0])
         return data
 
 
