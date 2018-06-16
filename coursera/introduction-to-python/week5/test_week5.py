@@ -19,8 +19,8 @@
 """
 
 import unittest
-from unittest.mock import patch
 from collections import deque
+from unittest.mock import patch
 
 # импорт модуля с решением
 from client import Client, ClientError
